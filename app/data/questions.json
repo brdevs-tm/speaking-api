@@ -1,0 +1,23 @@
+{
+  "part1": [
+    "What is your favorite hobby and why?",
+    "Where are you from, and what is it like?",
+    "Do you prefer to study alone or with others?",
+    "What kind of music do you enjoy listening to?",
+    "How do you usually spend your weekends?"
+  ],
+  "part2": [
+    "Describe a memorable holiday you have had. You should say: where you went, what you did, and why it was memorable.",
+    "Talk about a book you have read recently. You should say: what it was about, why you read it, and what you thought of it.",
+    "Describe a person who has influenced you. You should say: who they are, how you know them, and how they have impacted your life.",
+    "Talk about a place you would like to visit. You should say: where it is, why you want to go there, and what you would do there.",
+    "Describe a time when you helped someone. You should say: who you helped, how you helped them, and how you felt about it."
+  ],
+  "part3": [
+    "What are the benefits of international travel?",
+    "How does technology affect the way people communicate?",
+    "What are the advantages and disadvantages of living in a big city?",
+    "How can governments encourage people to live more sustainably?",
+    "Why is it important to preserve cultural heritage?"
+  ]
+}
