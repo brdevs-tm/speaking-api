@@ -10,7 +10,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Productionda frontend URLni kiriting
+    allow_origins=["*"],  # Update with frontend URL in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
