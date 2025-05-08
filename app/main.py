@@ -4,13 +4,13 @@ from app.routes import speaking, auth
 
 app = FastAPI(
     title="IELTS Speaking Practice API",
-    description="API for user authentication and IELTS speaking practice questions",
+    description="API for admin management and IELTS speaking practice questions",
     version="1.0.0"
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with frontend URL in production
+    allow_origins=["*"],  # Productionda frontend URLni kiriting
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
