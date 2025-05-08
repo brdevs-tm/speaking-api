@@ -1,6 +1,8 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import speaking, auth
+from app.services.telegram_bot import start_bot
 
 app = FastAPI(
     title="IELTS Speaking Practice API",
@@ -18,3 +20,8 @@ app.add_middleware(
 
 app.include_router(speaking.router)
 app.include_router(auth.router)
+
+# Start the Telegram bot when the app starts
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(start_bot())

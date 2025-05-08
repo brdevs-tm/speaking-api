@@ -71,6 +71,17 @@ def update_admin_credentials(new_username: str, new_password: str):
     finally:
         conn.close()
 
+def get_current_admin_credentials():
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, password FROM users WHERE username = 'iynemlive'")
+    user = cursor.fetchone()
+    conn.close()
+    if user:
+        return {"username": user[0], "password": user[1]}
+    return {"username": "Unknown", "password": "Unknown"}
+
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
