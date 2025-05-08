@@ -10,3 +10,12 @@ class AdminUpdate(BaseModel):
 
 class QuestionRequest(BaseModel):
     question: str
+
+class QuestionUpdate(BaseModel):
+    question: str
+
+class QuestionSearch(BaseModel):
+    query: str
+
+class BatchImport(BaseModel):
+    questions: list[dict]

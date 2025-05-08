@@ -42,7 +42,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-def get_all_questions(part: str = None):
+def get_all_questions(part=None):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -55,7 +55,9 @@ def get_all_questions(part: str = None):
     conn.close()
     return questions
 
-def save_question(part: str, question: str):
+def add_question(part, question):
+    if part not in ["part1", "part2", "part3"]:
+        raise ValueError(f"Invalid part: {part}")
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -63,9 +65,71 @@ def save_question(part: str, question: str):
     conn.commit()
     conn.close()
 
-def add_question(part: str, question: str):
+def delete_question(part, question_id):
     if part not in ["part1", "part2", "part3"]:
         raise ValueError(f"Invalid part: {part}")
-    save_question(part, question)
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM questions WHERE id = ? AND part = ?", (question_id, part))
+    if cursor.fetchone() is None:
+        conn.close()
+        return False
+    cursor.execute("DELETE FROM questions WHERE id = ? AND part = ?", (question_id, part))
+    conn.commit()
+    conn.close()
+    return True
+
+def update_question(part, question_id, new_question):
+    if part not in ["part1", "part2", "part3"]:
+        raise ValueError(f"Invalid part: {part}")
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM questions WHERE id = ? AND part = ?", (question_id, part))
+    if cursor.fetchone() is None:
+        conn.close()
+        return False
+    cursor.execute("UPDATE questions SET question = ? WHERE id = ? AND part = ?", (new_question, question_id, part))
+    conn.commit()
+    conn.close()
+    return True
+
+def search_questions(query):
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT part, question FROM questions WHERE question LIKE ?", ('%' + query + '%',))
+    results = [{"part": row[0], "question": row[1]} for row in cursor.fetchall()]
+    conn.close()
+    return results
+
+def get_question_count():
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT part, COUNT(*) as count FROM questions GROUP BY part")
+    counts = {row[0]: row[1] for row in cursor.fetchall()}
+    conn.close()
+    return {
+        "part1": counts.get("part1", 0),
+        "part2": counts.get("part2", 0),
+        "part3": counts.get("part3", 0)
+    }
+
+def import_questions(questions_data):
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    success_count = 0
+    for item in questions_data:
+        part = item.get("part")
+        question = item.get("question")
+        if part in ["part1", "part2", "part3"] and question and question.strip():
+            cursor.execute("INSERT INTO questions (part, question) VALUES (?, ?)", (part, question))
+            success_count += 1
+    conn.commit()
+    conn.close()
+    return success_count
 
 init_db()
