@@ -1,5 +1,4 @@
 import sqlite3
-import random
 from pathlib import Path
 
 def init_db():
@@ -43,27 +42,16 @@ def init_db():
     conn.commit()
     conn.close()
 
-def load_questions_by_part(part: str):
+def get_all_questions(part: str = None):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT question FROM questions WHERE part = ?", (part,))
-    questions = [row[0] for row in cursor.fetchall()]
-    conn.close()
-    return questions
-
-def get_all_questions_by_part(part: str) -> list:
-    questions = load_questions_by_part(part)
-    if not questions:
-        raise ValueError(f"No questions found for {part}")
-    return questions
-
-def get_all_questions():
-    db_path = Path(__file__).parent.parent / "data" / "questions.db"
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT part, question FROM questions")
-    questions = [{"part": row[0], "question": row[1]} for row in cursor.fetchall()]
+    if part:
+        cursor.execute("SELECT question FROM questions WHERE part = ?", (part,))
+        questions = [row[0] for row in cursor.fetchall()]
+    else:
+        cursor.execute("SELECT part, question FROM questions")
+        questions = [{"part": row[0], "question": row[1]} for row in cursor.fetchall()]
     conn.close()
     return questions
 

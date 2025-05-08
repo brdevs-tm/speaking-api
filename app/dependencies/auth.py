@@ -5,7 +5,7 @@ import os
 from sqlite3 import connect
 from pathlib import Path
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
+SECRET_KEY = os.getenv("SECRET_KEY", "acd8b91069b37d030a777c85c2f9c4ef")
 ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/admin-login")

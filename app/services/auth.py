@@ -6,7 +6,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")  # Productionda .env'dan oling
+SECRET_KEY = os.getenv("SECRET_KEY", "acd8b91069b37d030a777c85c2f9c4ef")  # Productionda .env'dan oling
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -16,8 +16,11 @@ def init_db():
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+    # Drop existing users table to avoid schema mismatch
+    cursor.execute("DROP TABLE IF EXISTS users")
+    # Create users table with correct schema
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
