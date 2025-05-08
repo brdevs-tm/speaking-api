@@ -43,7 +43,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-def load_questions(part: str):
+def load_questions_by_part(part: str):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -52,13 +52,11 @@ def load_questions(part: str):
     conn.close()
     return questions
 
-def save_question(part: str, question: str):
-    db_path = Path(__file__).parent.parent / "data" / "questions.db"
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO questions (part, question) VALUES (?, ?)", (part, question))
-    conn.commit()
-    conn.close()
+def get_all_questions_by_part(part: str) -> list:
+    questions = load_questions_by_part(part)
+    if not questions:
+        raise ValueError(f"No questions found for {part}")
+    return questions
 
 def get_all_questions():
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
@@ -69,11 +67,13 @@ def get_all_questions():
     conn.close()
     return questions
 
-def get_random_question(part: str) -> str:
-    questions = load_questions(part)
-    if not questions:
-        raise ValueError(f"No questions found for {part}")
-    return random.choice(questions)
+def save_question(part: str, question: str):
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO questions (part, question) VALUES (?, ?)", (part, question))
+    conn.commit()
+    conn.close()
 
 def add_question(part: str, question: str):
     if part not in ["part1", "part2", "part3"]:

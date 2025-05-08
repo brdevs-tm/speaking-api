@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.services.question_service import get_random_question, add_question, get_all_questions
+from app.services.question_service import get_all_questions_by_part, add_question, get_all_questions
 from app.models.schemas import QuestionRequest
 from app.dependencies.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/speaking", tags=["speaking"])
 
 @router.get("/part1")
-async def get_part1_question(current_user: dict = Depends(get_current_user)):
-    return {"question": get_random_question("part1")}
+async def get_part1_questions(current_user: dict = Depends(get_current_user)):
+    return {"questions": get_all_questions_by_part("part1")}
 
 @router.post("/part1", dependencies=[Depends(require_role("admin"))])
 async def add_part1_question(request: QuestionRequest):
@@ -17,8 +17,8 @@ async def add_part1_question(request: QuestionRequest):
     return {"message": "Question added successfully", "question": request.question}
 
 @router.get("/part2")
-async def get_part2_question(current_user: dict = Depends(get_current_user)):
-    return {"question": get_random_question("part2")}
+async def get_part2_questions(current_user: dict = Depends(get_current_user)):
+    return {"questions": get_all_questions_by_part("part2")}
 
 @router.post("/part2", dependencies=[Depends(require_role("admin"))])
 async def add_part2_question(request: QuestionRequest):
@@ -28,8 +28,8 @@ async def add_part2_question(request: QuestionRequest):
     return {"message": "Question added successfully", "question": request.question}
 
 @router.get("/part3")
-async def get_part3_question(current_user: dict = Depends(get_current_user)):
-    return {"question": get_random_question("part3")}
+async def get_part3_questions(current_user: dict = Depends(get_current_user)):
+    return {"questions": get_all_questions_by_part("part3")}
 
 @router.post("/part3", dependencies=[Depends(require_role("admin"))])
 async def add_part3_question(request: QuestionRequest):
