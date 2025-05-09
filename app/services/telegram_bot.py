@@ -8,7 +8,8 @@ from app.services.question_service import (
     get_all_questions,
     search_questions,
     get_question_count,
-    import_questions
+    import_questions,
+    get_question_by_id
 )
 from app.services.auth import update_admin_credentials, get_current_admin_credentials
 
@@ -71,9 +72,9 @@ async def add_question_command(update: Update, context: ContextTypes.DEFAULT_TYP
     part = args[0].lower()
     question = " ".join(args[1:])
     try:
-        add_question(part, question)
-        await update.message.reply_text(f"Added question to {part}: {question}")
-        await send_telegram_notification(f"New Question Added to {part}:\nQuestion: {question}")
+        new_id = add_question(part, question)
+        await update.message.reply_text(f"Added question to {part} with ID {new_id}: {question}")
+        await send_telegram_notification(f"New Question Added to {part}:\nID: {new_id}\nQuestion: {question}")
     except Exception as e:
         await update.message.reply_text(f"Error: {str(e)}")
 
@@ -148,9 +149,9 @@ async def update_admin_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await send_telegram_notification(
             "Admin Credentials Updated:\n"
             f"Old Username: {current_credentials['username']}\n"
-            f"Old Password: [Hidden for security]\n"
+            f"Old Password: {current_credentials['password']}\n"
             f"New Username: {new_username}\n"
-            f"New Password: [Hidden for security]"
+            f"New Password: {new_password}"
         )
     else:
         await update.message.reply_text("Failed to update admin credentials")

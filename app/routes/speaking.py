@@ -17,43 +17,43 @@ router = APIRouter(prefix="/api/speaking", tags=["speaking"])
 
 @router.get("/part1")
 async def get_part1_questions():
-    return {"questions": get_all_questions("part1")}
+    questions = get_all_questions("part1")
+    return {"questions": [q["question"] for q in questions]}
 
 @router.post("/part1", dependencies=[Depends(require_role("admin"))])
 async def add_part1_question(request: QuestionRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    add_question("part1", request.question)
-    # Send Telegram notification
-    message = f"New Question Added to Part 1:\nQuestion: {request.question}"
+    new_id = add_question("part1", request.question)
+    message = f"New Question Added to Part 1:\nID: {new_id}\nQuestion: {request.question}"
     await send_telegram_notification(message)
     return {"message": "Question added successfully", "question": request.question}
 
 @router.get("/part2")
 async def get_part2_questions():
-    return {"questions": get_all_questions("part2")}
+    questions = get_all_questions("part2")
+    return {"questions": [q["question"] for q in questions]}
 
 @router.post("/part2", dependencies=[Depends(require_role("admin"))])
 async def add_part2_question(request: QuestionRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    add_question("part2", request.question)
-    # Send Telegram notification
-    message = f"New Question Added to Part 2:\nQuestion: {request.question}"
+    new_id = add_question("part2", request.question)
+    message = f"New Question Added to Part 2:\nID: {new_id}\nQuestion: {request.question}"
     await send_telegram_notification(message)
     return {"message": "Question added successfully", "question": request.question}
 
 @router.get("/part3")
 async def get_part3_questions():
-    return {"questions": get_all_questions("part3")}
+    questions = get_all_questions("part3")
+    return {"questions": [q["question"] for q in questions]}
 
 @router.post("/part3", dependencies=[Depends(require_role("admin"))])
 async def add_part3_question(request: QuestionRequest):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    add_question("part3", request.question)
-    # Send Telegram notification
-    message = f"New Question Added to Part 3:\nQuestion: {request.question}"
+    new_id = add_question("part3", request.question)
+    message = f"New Question Added to Part 3:\nID: {new_id}\nQuestion: {request.question}"
     await send_telegram_notification(message)
     return {"message": "Question added successfully", "question": request.question}
 
@@ -62,26 +62,22 @@ async def list_all_questions():
     return get_all_questions()
 
 @router.delete("/{part}/{question_id}", dependencies=[Depends(require_role("admin"))])
-async def delete_part_question(part, question_id: int):
-    # Get question before deletion for notification
-    question = get_question_by_id(part, question_id)
+async def delete_part_question(part: str, question_id: int):
+    old_question = get_question_by_id(part, question_id)
     success = delete_question(part, question_id)
     if success:
-        # Send Telegram notification
-        message = f"Question Deleted from {part}:\nID: {question_id}\nQuestion: {question}"
+        message = f"Question Deleted from {part}:\nID: {question_id}\nQuestion: {old_question}"
         await send_telegram_notification(message)
         return {"message": f"Question {question_id} deleted from {part}"}
     raise HTTPException(status_code=404, detail="Question not found")
 
 @router.put("/{part}/{question_id}", dependencies=[Depends(require_role("admin"))])
-async def update_part_question(part, question_id: int, request: QuestionUpdate):
+async def update_part_question(part: str, question_id: int, request: QuestionUpdate):
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    # Get old question for notification
     old_question = get_question_by_id(part, question_id)
     success = update_question(part, question_id, request.question)
     if success:
-        # Send Telegram notification
         message = (
             f"Question Updated in {part}:\n"
             f"ID: {question_id}\n"
@@ -104,7 +100,6 @@ async def get_counts():
 @router.post("/import", dependencies=[Depends(require_role("admin"))])
 async def import_batch_questions(import_data: BatchImport):
     success_count = import_questions(import_data.questions)
-    # Send Telegram notification
     message = (
         "Batch Import Completed:\n"
         f"Imported {success_count} questions:\n"

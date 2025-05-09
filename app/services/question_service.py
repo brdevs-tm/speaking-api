@@ -5,13 +5,19 @@ def init_db():
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            part TEXT NOT NULL,
-            question TEXT NOT NULL
-        )
-    ''')
+
+    # Drop the old questions table if it exists
+    cursor.execute("DROP TABLE IF EXISTS questions")
+
+    # Create separate tables for each part with IDs starting from 0
+    for part in ["part1", "part2", "part3"]:
+        cursor.execute(f'''
+            CREATE TABLE IF NOT EXISTS {part}_questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL
+            )
+        ''')
+
     # Initial questions
     initial_questions = {
         "part1": [
@@ -36,9 +42,17 @@ def init_db():
             "Why is it important to preserve cultural heritage?"
         ]
     }
+
+    # Populate each table, resetting IDs to start from 0
     for part, questions in initial_questions.items():
+        # Clear existing data
+        cursor.execute(f"DELETE FROM {part}_questions")
+        # Reset the SQLite sequence to start IDs from 0
+        cursor.execute(f"DELETE FROM sqlite_sequence WHERE name='{part}_questions'")
+        # Insert questions
         for question in questions:
-            cursor.execute("INSERT OR IGNORE INTO questions (part, question) VALUES (?, ?)", (part, question))
+            cursor.execute(f"INSERT INTO {part}_questions (question) VALUES (?)", (question,))
+
     conn.commit()
     conn.close()
 
@@ -46,12 +60,17 @@ def get_all_questions(part=None):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+
     if part:
-        cursor.execute("SELECT question FROM questions WHERE part = ?", (part,))
-        questions = [row[0] for row in cursor.fetchall()]
+        cursor.execute(f"SELECT id, question FROM {part}_questions")
+        questions = [{"id": row[0], "question": row[1]} for row in cursor.fetchall()]
     else:
-        cursor.execute("SELECT id, part, question FROM questions")  # Include ID for management
-        questions = [{"id": row[0], "part": row[1], "question": row[2]} for row in cursor.fetchall()]
+        questions = []
+        for p in ["part1", "part2", "part3"]:
+            cursor.execute(f"SELECT id, question FROM {p}_questions")
+            part_questions = [{"id": row[0], "part": p, "question": row[1]} for row in cursor.fetchall()]
+            questions.extend(part_questions)
+
     conn.close()
     return questions
 
@@ -59,7 +78,7 @@ def get_question_by_id(part, question_id):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT question FROM questions WHERE id = ? AND part = ?", (question_id, part))
+    cursor.execute(f"SELECT question FROM {part}_questions WHERE id = ?", (question_id,))
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else "Unknown Question"
@@ -70,9 +89,11 @@ def add_question(part, question):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO questions (part, question) VALUES (?, ?)", (part, question))
+    cursor.execute(f"INSERT INTO {part}_questions (question) VALUES (?)", (question,))
+    new_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    return new_id
 
 def delete_question(part, question_id):
     if part not in ["part1", "part2", "part3"]:
@@ -80,11 +101,18 @@ def delete_question(part, question_id):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM questions WHERE id = ? AND part = ?", (question_id, part))
+    cursor.execute(f"SELECT id FROM {part}_questions WHERE id = ?", (question_id,))
     if cursor.fetchone() is None:
         conn.close()
         return False
-    cursor.execute("DELETE FROM questions WHERE id = ? AND part = ?", (question_id, part))
+    cursor.execute(f"DELETE FROM {part}_questions WHERE id = ?", (question_id,))
+    # Re-sequence IDs to maintain continuity
+    cursor.execute(f"SELECT id, question FROM {part}_questions ORDER BY id")
+    remaining = cursor.fetchall()
+    cursor.execute(f"DELETE FROM {part}_questions")
+    cursor.execute(f"DELETE FROM sqlite_sequence WHERE name='{part}_questions'")
+    for idx, (_, question) in enumerate(remaining):
+        cursor.execute(f"INSERT INTO {part}_questions (id, question) VALUES (?, ?)", (idx, question))
     conn.commit()
     conn.close()
     return True
@@ -95,11 +123,11 @@ def update_question(part, question_id, new_question):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM questions WHERE id = ? AND part = ?", (question_id, part))
+    cursor.execute(f"SELECT id FROM {part}_questions WHERE id = ?", (question_id,))
     if cursor.fetchone() is None:
         conn.close()
         return False
-    cursor.execute("UPDATE questions SET question = ? WHERE id = ? AND part = ?", (new_question, question_id, part))
+    cursor.execute(f"UPDATE {part}_questions SET question = ? WHERE id = ?", (new_question, question_id))
     conn.commit()
     conn.close()
     return True
@@ -108,8 +136,11 @@ def search_questions(query):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, part, question FROM questions WHERE question LIKE ?", ('%' + query + '%',))
-    results = [{"id": row[0], "part": row[1], "question": row[2]} for row in cursor.fetchall()]
+    results = []
+    for part in ["part1", "part2", "part3"]:
+        cursor.execute(f"SELECT id, question FROM {part}_questions WHERE question LIKE ?", ('%' + query + '%',))
+        part_results = [{"id": row[0], "part": part, "question": row[1]} for row in cursor.fetchall()]
+        results.extend(part_results)
     conn.close()
     return results
 
@@ -117,14 +148,12 @@ def get_question_count():
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT part, COUNT(*) as count FROM questions GROUP BY part")
-    counts = {row[0]: row[1] for row in cursor.fetchall()}
+    counts = {}
+    for part in ["part1", "part2", "part3"]:
+        cursor.execute(f"SELECT COUNT(*) FROM {part}_questions")
+        counts[part] = cursor.fetchone()[0]
     conn.close()
-    return {
-        "part1": counts.get("part1", 0),
-        "part2": counts.get("part2", 0),
-        "part3": counts.get("part3", 0)
-    }
+    return counts
 
 def import_questions(questions_data):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
@@ -135,8 +164,16 @@ def import_questions(questions_data):
         part = item.get("part")
         question = item.get("question")
         if part in ["part1", "part2", "part3"] and question and question.strip():
-            cursor.execute("INSERT INTO questions (part, question) VALUES (?, ?)", (part, question))
+            cursor.execute(f"INSERT INTO {part}_questions (question) VALUES (?)", (question,))
             success_count += 1
+    # Re-sequence IDs after import
+    for part in ["part1", "part2", "part3"]:
+        cursor.execute(f"SELECT id, question FROM {part}_questions ORDER BY id")
+        questions = cursor.fetchall()
+        cursor.execute(f"DELETE FROM {part}_questions")
+        cursor.execute(f"DELETE FROM sqlite_sequence WHERE name='{part}_questions'")
+        for idx, (_, question) in enumerate(questions):
+            cursor.execute(f"INSERT INTO {part}_questions (id, question) VALUES (?, ?)", (idx, question))
     conn.commit()
     conn.close()
     return success_count
