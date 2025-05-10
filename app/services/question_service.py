@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from datetime import datetime
 
 def init_db():
     db_path = Path(__file__).parent.parent / "data" / "questions.db"
@@ -17,6 +18,18 @@ def init_db():
                 question TEXT NOT NULL
             )
         ''')
+
+    # Create visits table to track user visits
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS visits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            device_id TEXT NOT NULL,
+            page TEXT NOT NULL,
+            start_time TEXT NOT NULL,
+            duration INTEGER NOT NULL  -- Duration in seconds
+        )
+    ''')
 
     # Initial questions
     initial_questions = {
@@ -55,6 +68,55 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+def track_visit(user_id, device_id, page, duration):
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    start_time = datetime.utcnow().isoformat()
+    cursor.execute(
+        "INSERT INTO visits (user_id, device_id, page, start_time, duration) VALUES (?, ?, ?, ?, ?)",
+        (user_id, device_id, page, start_time, duration)
+    )
+    conn.commit()
+    conn.close()
+
+def get_metrics():
+    db_path = Path(__file__).parent.parent / "data" / "questions.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Total unique users
+    cursor.execute("SELECT COUNT(DISTINCT user_id) FROM visits")
+    total_users = cursor.fetchone()[0]
+
+    # Total visits
+    cursor.execute("SELECT COUNT(*) FROM visits")
+    total_visits = cursor.fetchone()[0]
+
+    # Average time spent (in seconds)
+    cursor.execute("SELECT AVG(duration) FROM visits")
+    avg_time_spent = cursor.fetchone()[0] or 0
+
+    # Recent visits
+    cursor.execute("SELECT id, user_id, device_id, page, start_time, duration FROM visits ORDER BY start_time DESC LIMIT 10")
+    recent_visits = [
+        {"id": row[0], "user_id": row[1], "device_id": row[2], "page": row[3], "timestamp": row[4], "duration": row[5]}
+        for row in cursor.fetchall()
+    ]
+
+    # Time spent per user
+    cursor.execute("SELECT user_id, SUM(duration) as total_duration FROM visits GROUP BY user_id")
+    user_durations = [{"user_id": row[0], "total_duration": row[1]} for row in cursor.fetchall()]
+
+    conn.close()
+    return {
+        "total_users": total_users,
+        "total_visits": total_visits,
+        "average_time_spent": int(avg_time_spent),
+        "recent_visits": recent_visits,
+        "user_durations": user_durations
+    }
 
 def get_all_questions(part=None):
     db_path = Path(__file__).parent.parent / "data" / "questions.db"

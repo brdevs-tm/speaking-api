@@ -7,7 +7,9 @@ from app.services.question_service import (
     search_questions,
     get_question_count,
     import_questions,
-    get_question_by_id
+    get_question_by_id,
+    track_visit,
+    get_metrics
 )
 from app.models.schemas import QuestionRequest, QuestionUpdate, QuestionSearch, BatchImport
 from app.dependencies.auth import get_current_user, require_role
@@ -16,8 +18,10 @@ from app.services.telegram_bot import send_telegram_notification
 router = APIRouter(prefix="/api/speaking", tags=["speaking"])
 
 @router.get("/part1")
-async def get_part1_questions():
+async def get_part1_questions(user_id: str = "anonymous", device_id: str = "unknown"):
     questions = get_all_questions("part1")
+    # Track the visit
+    track_visit(user_id, device_id, "Part 1", 120)  # Assume 120 seconds for now
     return {"questions": [q["question"] for q in questions]}
 
 @router.post("/part1", dependencies=[Depends(require_role("admin"))])
@@ -30,8 +34,10 @@ async def add_part1_question(request: QuestionRequest):
     return {"message": "Question added successfully", "question": request.question}
 
 @router.get("/part2")
-async def get_part2_questions():
+async def get_part2_questions(user_id: str = "anonymous", device_id: str = "unknown"):
     questions = get_all_questions("part2")
+    # Track the visit
+    track_visit(user_id, device_id, "Part 2", 150)  # Assume 150 seconds for now
     return {"questions": [q["question"] for q in questions]}
 
 @router.post("/part2", dependencies=[Depends(require_role("admin"))])
@@ -44,8 +50,10 @@ async def add_part2_question(request: QuestionRequest):
     return {"message": "Question added successfully", "question": request.question}
 
 @router.get("/part3")
-async def get_part3_questions():
+async def get_part3_questions(user_id: str = "anonymous", device_id: str = "unknown"):
     questions = get_all_questions("part3")
+    # Track the visit
+    track_visit(user_id, device_id, "Part 3", 180)  # Assume 180 seconds for now
     return {"questions": [q["question"] for q in questions]}
 
 @router.post("/part3", dependencies=[Depends(require_role("admin"))])
@@ -107,3 +115,7 @@ async def import_batch_questions(import_data: BatchImport):
     )
     await send_telegram_notification(message)
     return {"message": f"Imported {success_count} questions successfully"}
+
+@router.get("/metrics", dependencies=[Depends(require_role("admin"))])
+async def get_admin_metrics():
+    return get_metrics()
